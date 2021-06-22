@@ -18,24 +18,27 @@ public class PlaylistService {
     @Autowired
     private PlaylistRepository playlistRepository;
 
+    @Autowired
+    private RepositoryHandler repositoryHandler;
+
     public Mono<Playlist> salvarPlaylist(Playlist playlist){
         playlist.setId(UUID.randomUUID().toString());
 
         return playlistRepository.findByNome(playlist.getNome())
                 .flatMap(exist -> Mono.error(new Exception(String.valueOf(HttpStatus.CONFLICT))))
-                .switchIfEmpty(Mono.defer(() -> playlistRepository.save(playlist)))
+                .switchIfEmpty(Mono.defer(() -> this.repositoryHandler.salvarPlaylist(playlist)))
                 .cast(Playlist.class);
     }
 
     public Mono<Playlist> retornaPlaylist(String id) {
-        return this.playlistRepository.findById(id)
+        return this.repositoryHandler.retornaPlaylist(id)
                 .switchIfEmpty(Mono.error(new Exception(String.valueOf(HttpStatus.NOT_FOUND))));
     }
 
     public Flux<Tuple2<Long, Playlist>> retornaTodasPlaylists() {
 
         Flux<Long> interval = Flux.interval(Duration.ofSeconds(2));
-        Flux<Playlist> playlistFlux = this.playlistRepository.findAll()
+        Flux<Playlist> playlistFlux = this.repositoryHandler.retornaTodasPlaylists()
                 .switchIfEmpty(Mono.error(new Exception(String.valueOf(HttpStatus.NOT_FOUND))));
 
         return Flux.zip(interval, playlistFlux);
